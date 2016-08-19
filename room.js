@@ -1,7 +1,9 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var mongo = require('mongodb').MongoClient;
 
+var url = 'mongodb://localhost:27017/users';
 var user = [];
 var client = [];
 
@@ -16,7 +18,18 @@ io.on('connection', function(socket){
 	
 	socket.on('disconnect', function(){
 		delete client[socket.id];
-		delete user[socket.id];
+		mongo.connect(url, function(err, db){
+			if(err)
+				console.log(err);
+			else{
+				var table = db.collection('userlist');  			
+  			table.deleteOne({room: '/', id:socket.id}, function(err, res){
+  				if(err)
+  					console.log(err);
+  				console.log(socket.id + 'removed');
+  			});
+			}
+		});
     console.log('user disconnected: ' + socket.id);
   });
 
@@ -25,27 +38,53 @@ io.on('connection', function(socket){
     io.emit('chat message', nick, msg);
   });
   socket.on('join', function(nick){
-  	var flag = true;
+  	//var flag = true;
   	console.log(nick + ' id: ' + socket.id + ' asked to join');
-  	for(var i in user){
-  		if(user[i] == nick){
-  			flag = false;
-  			break;
-  		}
-  	}
-  	if(!flag){
-  		client[socket.id].emit('denied');
-  		console.log(nick + ' id: ' + socket.id + ' denied');
-  	}
-  	else{
-  		user[socket.id] = nick;
-  		socket.join(nick);
-  		client[socket.id].emit('accepted');
-  		console.log('Added user ' + nick + ' id: ' + socket.id);
-  	}
+  	// for(var i in user){
+  	// 	if(user[i] == nick){
+  	// 		flag = false;
+  	// 		break;
+  	// 	}
+  	// }
+  	mongo.connect(url, function(err, db){
+			if(err)
+				console.log(err);
+			else{
+				var table = db.collection('userlist');  			
+  			table.find({room: '/', name: nick}).toArray(function(err, res){
+  				if(err)
+  					console.log(err);
+  				else if(res.length){
+  					client[socket.id].emit('denied');
+  					console.log(nick + ' id: ' + socket.id + ' denied');
+  					//TODO: add condition f already same socket id
+  				}
+  				else{
+  					table.insert({room: '/', name: nick, id: socket.id}, function(err, res){
+		  				if(err)
+		  					console.log(err);
+		  				else{
+		  					console.log('Added user ' + nick + ' id: ' + socket.id);
+		  					client[socket.id].emit('accepted');
+		  				}
+	  				});
+  				}
+  			});
+			}
+		});
+  	// if(!flag){
+  	// 	client[socket.id].emit('denied');
+  	// 	console.log(nick + ' id: ' + socket.id + ' denied');
+  	// }
+  	// else{
+  	// 	user[socket.id] = nick;
+  	// 	socket.join(nick);
+  	// 	client[socket.id].emit('accepted');
+  	// 	console.log('Added user ' + nick + ' id: ' + socket.id);
+  	// }
   });
 });
 
 http.listen(4000, function(){
-  console.log('listening on *:3000');
+  console.log('listening on *:4000');
 });
