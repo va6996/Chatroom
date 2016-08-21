@@ -27,6 +27,13 @@
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
       var socket = io();
+      socket.on('connect',function(){
+        socket.emit('uid', localStorage.getItem('uid'));
+        console.log('on connect');
+      });
+      socket.on('register', function(uid){
+        localStorage.setItem('uid',uid);
+      });
       $('form#msg').submit(function(){
         socket.emit('chat message', $('#nick').val(), $('#m').val());
         $('#messages').append($('<li>').text('Me: ' + $('#m').val()));

@@ -4,7 +4,6 @@ var io = require('socket.io')(http);
 var mongo = require('mongodb').MongoClient;
 
 var url = 'mongodb://localhost:27017/users';
-var user = [];
 var client = [];
 
 app.get('/', function(req, res){
@@ -15,7 +14,19 @@ io.on('connection', function(socket){
 
 	client[socket.id] = socket;
 	console.log('a user connected: ' + socket.id);
-	
+	//client[socket.id].emit('connect');
+
+	socket.on('uid', function(uid){
+		if(uid!=null){
+			client[socket.id].emit('reregister');
+			console.log('reregistered');
+		}
+		else{
+			var randomlyGeneratedUID = Math.random().toString(36).substring(3,16);
+			client[socket.id].emit('register', randomlyGeneratedUID);
+			console.log('register');
+		}
+	});
 	socket.on('disconnect', function(){
 		delete client[socket.id];
 		mongo.connect(url, function(err, db){
@@ -38,14 +49,7 @@ io.on('connection', function(socket){
     io.emit('chat message', nick, msg);
   });
   socket.on('join', function(nick){
-  	//var flag = true;
   	console.log(nick + ' id: ' + socket.id + ' asked to join');
-  	// for(var i in user){
-  	// 	if(user[i] == nick){
-  	// 		flag = false;
-  	// 		break;
-  	// 	}
-  	// }
   	mongo.connect(url, function(err, db){
 			if(err)
 				console.log(err);
@@ -72,16 +76,6 @@ io.on('connection', function(socket){
   			});
 			}
 		});
-  	// if(!flag){
-  	// 	client[socket.id].emit('denied');
-  	// 	console.log(nick + ' id: ' + socket.id + ' denied');
-  	// }
-  	// else{
-  	// 	user[socket.id] = nick;
-  	// 	socket.join(nick);
-  	// 	client[socket.id].emit('accepted');
-  	// 	console.log('Added user ' + nick + ' id: ' + socket.id);
-  	// }
   });
 });
 
