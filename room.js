@@ -10,6 +10,10 @@ app.get('/', function(req, res){
   res.sendfile('index.html');
 });
 
+app.get('/*', function(req, res){
+	res.sendfile('index.html');
+});
+
 io.on('connection', function(socket){
 
 	client[socket.id] = socket;
@@ -48,14 +52,14 @@ io.on('connection', function(socket){
     console.log('message by ' + nick + ': ' + msg);
     io.emit('chat message', nick, msg);
   });
-  socket.on('join', function(nick){
-  	console.log(nick + ' id: ' + socket.id + ' asked to join');
+  socket.on('join', function(nick, link){
+  	console.log(nick + ' id: ' + socket.id + ' asked to join on ' + link);
   	mongo.connect(url, function(err, db){
 			if(err)
 				console.log(err);
 			else{
 				var table = db.collection('userlist');  			
-  			table.find({room: '/', name: nick}).toArray(function(err, res){
+  			table.find({room: link, name: nick}).toArray(function(err, res){
   				if(err)
   					console.log(err);
   				else if(res.length){
@@ -64,7 +68,7 @@ io.on('connection', function(socket){
   					//TODO: add condition f already same socket id
   				}
   				else{
-  					table.insert({room: '/', name: nick, id: socket.id}, function(err, res){
+  					table.insert({room: link, name: nick, id: socket.id}, function(err, res){
 		  				if(err)
 		  					console.log(err);
 		  				else{

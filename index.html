@@ -26,13 +26,18 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
+      function getLocation(href){
+        var l = document.createElement('a');
+        l.href= href;
+        return l;
+      }
       var socket = io();
       socket.on('connect',function(){
-        socket.emit('uid', localStorage.getItem('uid'));
+        socket.emit('uid', sessionStorage.getItem('uid'));
         console.log('on connect');
       });
       socket.on('register', function(uid){
-        localStorage.setItem('uid',uid);
+        sessionStorage.setItem('uid',uid);
       });
       $('form#msg').submit(function(){
         socket.emit('chat message', $('#nick').val(), $('#m').val());
@@ -41,7 +46,8 @@
         return false;
       });
       $('form#nickname').submit(function(){
-        socket.emit('join', $('#nick').val());
+        var url = getLocation(window.location.href);
+        socket.emit('join', $('#nick').val(), url.pathname);
         return false;
       });
       socket.on('chat message', function(nick, msg){
